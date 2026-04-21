@@ -62,3 +62,6 @@ The following are not required in the first runnable version:
   - `view_loss_weight = 1.0`
   - `aggregator_mode = shared_and_view_logits`
 
+## Experimental Note (Shortcut Risk)
+- `conflict_type` is now treated as analysis metadata rather than default model input in the prototype baseline.
+- Pilot ablations indicated `conflict_type` can act as a shortcut signal and introduce leakage-like behavior in validation.

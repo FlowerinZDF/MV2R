@@ -134,7 +134,7 @@ class MultimodalReadyTextSharedEncoder(MV2RSharedEncoderBase):
         conflict_type_dim: int = 16,
         dropout: float = 0.1,
         use_evidence_text: bool = True,
-        use_conflict_type: bool = True,
+        use_conflict_type: bool = False,
         use_image_hint: bool = True,
     ) -> None:
         super().__init__()

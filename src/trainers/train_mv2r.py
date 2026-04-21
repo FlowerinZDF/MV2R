@@ -231,7 +231,7 @@ def run_sanity_check(args: argparse.Namespace) -> None:
         aggregator_mode=args.aggregator_mode,
         encoder_kwargs={
             "use_evidence_text": not args.disable_evidence_text,
-            "use_conflict_type": not args.disable_conflict_type,
+            "use_conflict_type": args.enable_conflict_type and not args.disable_conflict_type,
             "use_image_hint": not args.disable_image_hint,
         },
     ).to(device)
@@ -317,9 +317,14 @@ def parse_args() -> argparse.Namespace:
         help="Disable evidence_text feature path in multimodal_ready_text encoder",
     )
     parser.add_argument(
+        "--enable-conflict-type",
+        action="store_true",
+        help="Enable conflict_type feature path in multimodal_ready_text encoder (disabled by default)",
+    )
+    parser.add_argument(
         "--disable-conflict-type",
         action="store_true",
-        help="Disable conflict_type feature path in multimodal_ready_text encoder",
+        help="Deprecated compatibility flag. If set, conflict_type feature path stays disabled.",
     )
     parser.add_argument(
         "--disable-image-hint",
@@ -358,7 +363,7 @@ def main() -> None:
         aggregator_mode=args.aggregator_mode,
         encoder_kwargs={
             "use_evidence_text": not args.disable_evidence_text,
-            "use_conflict_type": not args.disable_conflict_type,
+            "use_conflict_type": args.enable_conflict_type and not args.disable_conflict_type,
             "use_image_hint": not args.disable_image_hint,
         },
     ).to(device)
