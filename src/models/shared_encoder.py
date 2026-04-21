@@ -133,9 +133,15 @@ class MultimodalReadyTextSharedEncoder(MV2RSharedEncoderBase):
         conflict_type_vocab_size: int = 32,
         conflict_type_dim: int = 16,
         dropout: float = 0.1,
+        use_evidence_text: bool = True,
+        use_conflict_type: bool = True,
+        use_image_hint: bool = True,
     ) -> None:
         super().__init__()
         self.hidden_dim = hidden_dim
+        self.use_evidence_text = use_evidence_text
+        self.use_conflict_type = use_conflict_type
+        self.use_image_hint = use_image_hint
         self.main_text_encoder = SimpleTextSharedEncoder(
             hidden_dim=hidden_dim,
             vocab_size=text_vocab_size,
@@ -197,34 +203,43 @@ class MultimodalReadyTextSharedEncoder(MV2RSharedEncoderBase):
 
         main_text_feature = self.main_text_encoder(batch)
 
-        evidence_texts = self._coerce_optional_texts(batch.get("evidence_text"), batch_size, field_name="evidence_text")
-        evidence_text_feature = self.evidence_text_encoder({"texts": evidence_texts})
+        evidence_text_feature = torch.zeros((batch_size, self.hidden_dim), dtype=torch.float32, device=device)
+        if self.use_evidence_text:
+            evidence_texts = self._coerce_optional_texts(
+                batch.get("evidence_text"),
+                batch_size,
+                field_name="evidence_text",
+            )
+            evidence_text_feature = self.evidence_text_encoder({"texts": evidence_texts})
 
-        conflict_types = self._coerce_optional_texts(
-            batch.get("conflict_types"),
-            batch_size,
-            field_name="conflict_types",
-            fallback="",
-        )
-        conflict_ids = torch.tensor(
-            [self._conflict_type_to_id(value) for value in conflict_types],
-            dtype=torch.long,
-            device=device,
-        )
-        conflict_emb = self.conflict_type_embedding(conflict_ids)
-
-        image_paths = batch.get("image_paths")
-        image_presence = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
-        if image_paths is not None:
-            if not isinstance(image_paths, list):
-                raise TypeError("batch['image_paths'] must be a list when provided")
-            if len(image_paths) != batch_size:
-                raise ValueError("batch['image_paths'] length must match batch['texts'] length")
-            image_presence = torch.tensor(
-                [[1.0 if isinstance(path, str) and path.strip() else 0.0] for path in image_paths],
-                dtype=torch.float32,
+        conflict_ids = torch.zeros((batch_size,), dtype=torch.long, device=device)
+        if self.use_conflict_type:
+            conflict_types = self._coerce_optional_texts(
+                batch.get("conflict_types"),
+                batch_size,
+                field_name="conflict_types",
+                fallback="",
+            )
+            conflict_ids = torch.tensor(
+                [self._conflict_type_to_id(value) for value in conflict_types],
+                dtype=torch.long,
                 device=device,
             )
+        conflict_emb = self.conflict_type_embedding(conflict_ids)
+
+        image_presence = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
+        if self.use_image_hint:
+            image_paths = batch.get("image_paths")
+            if image_paths is not None:
+                if not isinstance(image_paths, list):
+                    raise TypeError("batch['image_paths'] must be a list when provided")
+                if len(image_paths) != batch_size:
+                    raise ValueError("batch['image_paths'] length must match batch['texts'] length")
+                image_presence = torch.tensor(
+                    [[1.0 if isinstance(path, str) and path.strip() else 0.0] for path in image_paths],
+                    dtype=torch.float32,
+                    device=device,
+                )
 
         aux_feature = self.conflict_projection(torch.cat([conflict_emb, image_presence], dim=-1))
         fused = torch.cat([main_text_feature, evidence_text_feature, aux_feature], dim=-1)
