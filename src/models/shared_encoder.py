@@ -111,6 +111,126 @@ class StubMultimodalSharedEncoder(MV2RSharedEncoderBase):
         raise NotImplementedError("Multimodal shared encoder is not implemented yet.")
 
 
+class MultimodalReadyTextSharedEncoder(MV2RSharedEncoderBase):
+    """Text-first encoder with multimodal-ready batch inputs.
+
+    This mode keeps compute lightweight while preparing a richer shared feature:
+    - main text path: required (`batch["texts"]`)
+    - evidence text path: optional (`batch["evidence_text"]`)
+    - conflict type path: optional categorical feature (`batch["conflict_types"]`)
+    - image path presence hint: optional scalar from `batch["image_paths"]`
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        text_vocab_size: int = 12000,
+        text_token_dim: int = 128,
+        text_max_tokens: int = 64,
+        evidence_vocab_size: int = 6000,
+        evidence_token_dim: int = 64,
+        evidence_max_tokens: int = 40,
+        conflict_type_vocab_size: int = 32,
+        conflict_type_dim: int = 16,
+        dropout: float = 0.1,
+    ) -> None:
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.main_text_encoder = SimpleTextSharedEncoder(
+            hidden_dim=hidden_dim,
+            vocab_size=text_vocab_size,
+            token_dim=text_token_dim,
+            max_tokens=text_max_tokens,
+            dropout=dropout,
+        )
+        self.evidence_text_encoder = SimpleTextSharedEncoder(
+            hidden_dim=hidden_dim,
+            vocab_size=evidence_vocab_size,
+            token_dim=evidence_token_dim,
+            max_tokens=evidence_max_tokens,
+            dropout=dropout,
+        )
+
+        # 0: missing/unknown, 1..N-1: hashed conflict types.
+        self.conflict_type_embedding = nn.Embedding(conflict_type_vocab_size, conflict_type_dim, padding_idx=0)
+        self.conflict_projection = nn.Sequential(
+            nn.Linear(conflict_type_dim + 1, hidden_dim),  # +1 for image-presence hint
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.LayerNorm(hidden_dim),
+        )
+        self.fusion = nn.Sequential(
+            nn.Linear(hidden_dim * 3, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.LayerNorm(hidden_dim),
+        )
+        self._conflict_type_vocab_size = conflict_type_vocab_size
+
+    def _conflict_type_to_id(self, conflict_type: object) -> int:
+        if not isinstance(conflict_type, str) or not conflict_type:
+            return 0
+        if self._conflict_type_vocab_size <= 1:
+            return 0
+        return (abs(hash(conflict_type.lower())) % (self._conflict_type_vocab_size - 1)) + 1
+
+    def _coerce_optional_texts(
+        self, values: object, batch_size: int, field_name: str, fallback: str = ""
+    ) -> List[str]:
+        if values is None:
+            return [fallback] * batch_size
+        if not isinstance(values, list):
+            raise TypeError(f"batch['{field_name}'] must be a list when provided")
+        if len(values) != batch_size:
+            raise ValueError(f"batch['{field_name}'] length must match batch['texts'] length")
+        normalized: List[str] = []
+        for value in values:
+            normalized.append(value if isinstance(value, str) else fallback)
+        return normalized
+
+    def forward(self, batch: Dict[str, object]) -> torch.Tensor:
+        texts = batch.get("texts")
+        if not isinstance(texts, list):
+            raise TypeError("batch['texts'] must be a list of strings")
+        batch_size = len(texts)
+        device = self.main_text_encoder.embedding.weight.device
+
+        main_text_feature = self.main_text_encoder(batch)
+
+        evidence_texts = self._coerce_optional_texts(batch.get("evidence_text"), batch_size, field_name="evidence_text")
+        evidence_text_feature = self.evidence_text_encoder({"texts": evidence_texts})
+
+        conflict_types = self._coerce_optional_texts(
+            batch.get("conflict_types"),
+            batch_size,
+            field_name="conflict_types",
+            fallback="",
+        )
+        conflict_ids = torch.tensor(
+            [self._conflict_type_to_id(value) for value in conflict_types],
+            dtype=torch.long,
+            device=device,
+        )
+        conflict_emb = self.conflict_type_embedding(conflict_ids)
+
+        image_paths = batch.get("image_paths")
+        image_presence = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
+        if image_paths is not None:
+            if not isinstance(image_paths, list):
+                raise TypeError("batch['image_paths'] must be a list when provided")
+            if len(image_paths) != batch_size:
+                raise ValueError("batch['image_paths'] length must match batch['texts'] length")
+            image_presence = torch.tensor(
+                [[1.0 if isinstance(path, str) and path.strip() else 0.0] for path in image_paths],
+                dtype=torch.float32,
+                device=device,
+            )
+
+        aux_feature = self.conflict_projection(torch.cat([conflict_emb, image_presence], dim=-1))
+        fused = torch.cat([main_text_feature, evidence_text_feature, aux_feature], dim=-1)
+        return self.fusion(fused)
+
+
 def build_shared_encoder(encoder_type: str, hidden_dim: int, **kwargs: object) -> MV2RSharedEncoderBase:
     """Factory for shared encoder construction.
 
@@ -125,6 +245,9 @@ def build_shared_encoder(encoder_type: str, hidden_dim: int, **kwargs: object) -
 
     if encoder_type == "multimodal_stub":
         return StubMultimodalSharedEncoder(hidden_dim=hidden_dim)
+
+    if encoder_type == "multimodal_ready_text":
+        return MultimodalReadyTextSharedEncoder(hidden_dim=hidden_dim, **kwargs)
 
     raise ValueError(f"Unsupported encoder_type: {encoder_type}")
 
@@ -143,3 +266,23 @@ if __name__ == "__main__":
         shared_feature = encoder(fake_batch)
 
     print(f"shared feature shape: {tuple(shared_feature.shape)}")
+
+    mm_encoder = build_shared_encoder("multimodal_ready_text", hidden_dim=16)
+    fake_mm_batch: Dict[str, object] = {
+        "texts": [
+            "A person giving a speech in a park.",
+            "Night street photo with no visible crowd!",
+            "",
+        ],
+        "image_paths": ["dummy_1.jpg", "", "dummy_3.jpg"],
+        "evidence_text": [
+            "Microphone and stage are visible.",
+            "",
+            "Street lights with no people nearby.",
+        ],
+        "conflict_types": ["subject_scene", "", "event_location"],
+    }
+    with torch.no_grad():
+        mm_shared_feature = mm_encoder(fake_mm_batch)
+
+    print(f"multimodal-ready shared feature shape: {tuple(mm_shared_feature.shape)}")
