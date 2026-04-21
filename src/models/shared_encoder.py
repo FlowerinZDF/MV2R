@@ -246,6 +246,131 @@ class MultimodalReadyTextSharedEncoder(MV2RSharedEncoderBase):
         return self.fusion(fused)
 
 
+class MultimodalLightSharedEncoder(MV2RSharedEncoderBase):
+    """Lightweight multimodal-aware encoder.
+
+    This encoder keeps text as the primary signal while introducing a tiny,
+    learnable image-side path that depends only on image path presence.
+    It is intended as a structure-ready bridge toward future true image feature
+    integration without adding heavy vision dependencies.
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        text_vocab_size: int = 12000,
+        text_token_dim: int = 128,
+        text_max_tokens: int = 64,
+        evidence_vocab_size: int = 6000,
+        evidence_token_dim: int = 64,
+        evidence_max_tokens: int = 40,
+        image_state_dim: int = 8,
+        dropout: float = 0.1,
+        use_evidence_text: bool = True,
+    ) -> None:
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.use_evidence_text = use_evidence_text
+
+        self.main_text_encoder = SimpleTextSharedEncoder(
+            hidden_dim=hidden_dim,
+            vocab_size=text_vocab_size,
+            token_dim=text_token_dim,
+            max_tokens=text_max_tokens,
+            dropout=dropout,
+        )
+        self.evidence_text_encoder = SimpleTextSharedEncoder(
+            hidden_dim=hidden_dim,
+            vocab_size=evidence_vocab_size,
+            token_dim=evidence_token_dim,
+            max_tokens=evidence_max_tokens,
+            dropout=dropout,
+        )
+
+        # 0 = no image path, 1 = image path present.
+        self.image_state_embedding = nn.Embedding(2, image_state_dim)
+        self.image_projection = nn.Sequential(
+            nn.Linear(image_state_dim + 1, hidden_dim),  # +1 for raw presence scalar
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.LayerNorm(hidden_dim),
+        )
+        self.fusion = nn.Sequential(
+            nn.Linear(hidden_dim * 3, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.LayerNorm(hidden_dim),
+        )
+
+    def _coerce_optional_texts(
+        self, values: object, batch_size: int, field_name: str, fallback: str = ""
+    ) -> List[str]:
+        if values is None:
+            return [fallback] * batch_size
+        if not isinstance(values, list):
+            raise TypeError(f"batch['{field_name}'] must be a list when provided")
+        if len(values) != batch_size:
+            raise ValueError(f"batch['{field_name}'] length must match batch['texts'] length")
+        normalized: List[str] = []
+        for value in values:
+            normalized.append(value if isinstance(value, str) else fallback)
+        return normalized
+
+    def _compute_image_feature(
+        self,
+        image_paths: object,
+        batch_size: int,
+        device: torch.device,
+    ) -> torch.Tensor:
+        image_presence = torch.zeros((batch_size, 1), dtype=torch.float32, device=device)
+        image_state_ids = torch.zeros((batch_size,), dtype=torch.long, device=device)
+
+        if image_paths is None:
+            image_state_emb = self.image_state_embedding(image_state_ids)
+            return self.image_projection(torch.cat([image_state_emb, image_presence], dim=-1))
+
+        if not isinstance(image_paths, list):
+            raise TypeError("batch['image_paths'] must be a list when provided")
+        if len(image_paths) != batch_size:
+            raise ValueError("batch['image_paths'] length must match batch['texts'] length")
+
+        for idx, path in enumerate(image_paths):
+            has_image = isinstance(path, str) and bool(path.strip())
+            if has_image:
+                image_presence[idx, 0] = 1.0
+                image_state_ids[idx] = 1
+
+        image_state_emb = self.image_state_embedding(image_state_ids)
+        return self.image_projection(torch.cat([image_state_emb, image_presence], dim=-1))
+
+    def forward(self, batch: Dict[str, object]) -> torch.Tensor:
+        texts = batch.get("texts")
+        if not isinstance(texts, list):
+            raise TypeError("batch['texts'] must be a list of strings")
+        batch_size = len(texts)
+        device = self.main_text_encoder.embedding.weight.device
+
+        main_text_feature = self.main_text_encoder(batch)
+
+        evidence_text_feature = torch.zeros((batch_size, self.hidden_dim), dtype=torch.float32, device=device)
+        if self.use_evidence_text:
+            evidence_texts = self._coerce_optional_texts(
+                batch.get("evidence_text"),
+                batch_size,
+                field_name="evidence_text",
+            )
+            evidence_text_feature = self.evidence_text_encoder({"texts": evidence_texts})
+
+        image_feature = self._compute_image_feature(
+            image_paths=batch.get("image_paths"),
+            batch_size=batch_size,
+            device=device,
+        )
+
+        fused = torch.cat([main_text_feature, evidence_text_feature, image_feature], dim=-1)
+        return self.fusion(fused)
+
+
 def build_shared_encoder(encoder_type: str, hidden_dim: int, **kwargs: object) -> MV2RSharedEncoderBase:
     """Factory for shared encoder construction.
 
@@ -263,6 +388,9 @@ def build_shared_encoder(encoder_type: str, hidden_dim: int, **kwargs: object) -
 
     if encoder_type == "multimodal_ready_text":
         return MultimodalReadyTextSharedEncoder(hidden_dim=hidden_dim, **kwargs)
+
+    if encoder_type == "multimodal_light":
+        return MultimodalLightSharedEncoder(hidden_dim=hidden_dim, **kwargs)
 
     raise ValueError(f"Unsupported encoder_type: {encoder_type}")
 
@@ -301,3 +429,9 @@ if __name__ == "__main__":
         mm_shared_feature = mm_encoder(fake_mm_batch)
 
     print(f"multimodal-ready shared feature shape: {tuple(mm_shared_feature.shape)}")
+
+    mm_light_encoder = build_shared_encoder("multimodal_light", hidden_dim=16)
+    with torch.no_grad():
+        mm_light_shared_feature = mm_light_encoder(fake_mm_batch)
+
+    print(f"multimodal-light shared feature shape: {tuple(mm_light_shared_feature.shape)}")

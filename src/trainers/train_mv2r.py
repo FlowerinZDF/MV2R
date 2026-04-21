@@ -34,7 +34,8 @@ class MinimalMV2RModel(nn.Module):
         encoder_kwargs: Optional[Dict[str, object]] = None,
     ) -> None:
         super().__init__()
-        selected_encoder_kwargs = encoder_kwargs if encoder_type == "multimodal_ready_text" else {}
+        multimodal_encoder_types = {"multimodal_ready_text", "multimodal_light"}
+        selected_encoder_kwargs = encoder_kwargs if encoder_type in multimodal_encoder_types else {}
         self.encoder = build_shared_encoder(
             encoder_type=encoder_type,
             hidden_dim=hidden_dim,
@@ -287,7 +288,7 @@ def parse_args() -> argparse.Namespace:
         "--encoder-type",
         type=str,
         default="simple_text",
-        choices=["simple_text", "multimodal_ready_text"],
+        choices=["simple_text", "multimodal_ready_text", "multimodal_light"],
         help="Shared encoder type",
     )
     parser.add_argument(
