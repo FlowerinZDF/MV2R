@@ -260,3 +260,5 @@ requirements_clean.txt
 !README.md
 !LICENSE
 !LICENSE.txt
+
+tmp/
