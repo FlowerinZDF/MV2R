@@ -1,0 +1,70 @@
+[
+  {
+    "id": "pilot_017",
+    "image": "images/sample_017.jpg",
+    "text": "Report says commuter rail service resumes tonight after strike talks.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "relation": 0
+    },
+    "evidence_text": [
+      "Transit authority bulletin confirms trains restart at 8 PM.",
+      "Union and operator jointly announced a temporary agreement."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_018",
+    "image": "images/sample_018.jpg",
+    "text": "Headline claims the actor endorsed candidate Green at a rally.",
+    "overall_label": 1,
+    "view_labels": {
+      "subject": 1,
+      "relation": 1,
+      "event": 0
+    },
+    "evidence_text": [
+      "Campaign office says no endorsement statement was issued.",
+      "The rally photo predates the current election cycle."
+    ],
+    "evidence_region": [],
+    "conflict_type": "entity_mismatch"
+  },
+  {
+    "id": "pilot_019",
+    "image": "images/sample_019.jpg",
+    "text": "Neighborhood alert says a sinkhole closed Pine Street this morning.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "location": 0,
+      "scene": 0
+    },
+    "evidence_text": [
+      "Public works notice confirms Pine Street closure from 9 AM.",
+      "Traffic cameras show barricades at both entrances to the block."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_020",
+    "image": "images/sample_020.jpg",
+    "text": "Shared image claims voting was extended by two days nationwide.",
+    "overall_label": 1,
+    "view_labels": {
+      "ocr": 1,
+      "time": 1,
+      "event": 1
+    },
+    "evidence_text": [
+      "Election commission states voting dates remain unchanged.",
+      "Notice in the graphic uses an unofficial seal and wrong hotline number."
+    ],
+    "evidence_region": [],
+    "conflict_type": "ocr_inconsistency"
+  }
+]

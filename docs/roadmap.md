@@ -51,3 +51,4 @@ The following are not required in the first runnable version:
 ## Pilot Dataset
 - Added initial pilot file: `data/pilot/mv2r_pilot.json` (20 schema-compliant samples for first real MV2R experiment).
 
+- Split pilot into train/val: `data/pilot/mv2r_pilot_train.json` (16) and `data/pilot/mv2r_pilot_val.json` (4) for first-pass evaluation.
