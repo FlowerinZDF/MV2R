@@ -31,9 +31,15 @@ class MinimalMV2RModel(nn.Module):
         num_classes: int = 2,
         encoder_type: str = "simple_text",
         aggregator_mode: Literal["shared", "view_logits", "shared_and_view_logits"] = "shared",
+        encoder_kwargs: Optional[Dict[str, object]] = None,
     ) -> None:
         super().__init__()
-        self.encoder = build_shared_encoder(encoder_type=encoder_type, hidden_dim=hidden_dim)
+        selected_encoder_kwargs = encoder_kwargs if encoder_type == "multimodal_ready_text" else {}
+        self.encoder = build_shared_encoder(
+            encoder_type=encoder_type,
+            hidden_dim=hidden_dim,
+            **(selected_encoder_kwargs or {}),
+        )
         self.view_head = MV2RViewHead(hidden_dim=hidden_dim)
         self.aggregator_mode = aggregator_mode
 
@@ -223,6 +229,11 @@ def run_sanity_check(args: argparse.Namespace) -> None:
         hidden_dim=args.hidden_dim,
         encoder_type=args.encoder_type,
         aggregator_mode=args.aggregator_mode,
+        encoder_kwargs={
+            "use_evidence_text": not args.disable_evidence_text,
+            "use_conflict_type": not args.disable_conflict_type,
+            "use_image_hint": not args.disable_image_hint,
+        },
     ).to(device)
 
     for key in ("overall_labels", "view_labels"):
@@ -300,6 +311,21 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Optional path to write a tiny JSON dataset for quick sanity-checking",
     )
+    parser.add_argument(
+        "--disable-evidence-text",
+        action="store_true",
+        help="Disable evidence_text feature path in multimodal_ready_text encoder",
+    )
+    parser.add_argument(
+        "--disable-conflict-type",
+        action="store_true",
+        help="Disable conflict_type feature path in multimodal_ready_text encoder",
+    )
+    parser.add_argument(
+        "--disable-image-hint",
+        action="store_true",
+        help="Disable image-path presence hint in multimodal_ready_text encoder",
+    )
     return parser.parse_args()
 
 
@@ -330,6 +356,11 @@ def main() -> None:
         hidden_dim=args.hidden_dim,
         encoder_type=args.encoder_type,
         aggregator_mode=args.aggregator_mode,
+        encoder_kwargs={
+            "use_evidence_text": not args.disable_evidence_text,
+            "use_conflict_type": not args.disable_conflict_type,
+            "use_image_hint": not args.disable_image_hint,
+        },
     ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
