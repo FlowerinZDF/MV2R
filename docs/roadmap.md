@@ -52,3 +52,13 @@ The following are not required in the first runnable version:
 - Added initial pilot file: `data/pilot/mv2r_pilot.json` (20 schema-compliant samples for first real MV2R experiment).
 
 - Split pilot into train/val: `data/pilot/mv2r_pilot_train.json` (16) and `data/pilot/mv2r_pilot_val.json` (4) for first-pass evaluation.
+
+## Stable Pilot Round (v2)
+- Added larger pilot split for next stable round:
+  - `data/pilot/mv2r_pilot_train_v2.json` (48)
+  - `data/pilot/mv2r_pilot_val_v2.json` (12)
+- Current best-performing configuration:
+  - improved shared encoder
+  - `view_loss_weight = 1.0`
+  - `aggregator_mode = shared_and_view_logits`
+

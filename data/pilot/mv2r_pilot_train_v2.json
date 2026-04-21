@@ -1,0 +1,819 @@
+[
+  {
+    "id": "pilot_v2_001",
+    "image": "images/sample_001.jpg",
+    "text": "Post says the city canceled tomorrow's river parade after a storm warning.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "time": 1,
+      "location": 0
+    },
+    "evidence_text": [
+      "City bulletin confirms the parade permit remains active for tomorrow afternoon.",
+      "Weather advisory was downgraded and organizers confirmed no cancellation."
+    ],
+    "evidence_region": [],
+    "conflict_type": "temporal_conflict"
+  },
+  {
+    "id": "pilot_v2_002",
+    "image": "images/sample_002.jpg",
+    "text": "Image caption claims wolves were filmed roaming inside a downtown subway station.",
+    "overall_label": 1,
+    "view_labels": {
+      "subject": 1,
+      "scene": 1,
+      "relation": 1
+    },
+    "evidence_text": [
+      "Transit police reported no animal intrusion at the station this week.",
+      "The circulated image matches an older wildlife-rescue drill photo."
+    ],
+    "evidence_region": [],
+    "conflict_type": "cross_modal_conflict"
+  },
+  {
+    "id": "pilot_v2_003",
+    "image": "images/sample_003.jpg",
+    "text": "Graphic states milk prices fell below $0.80 per gallon statewide this morning.",
+    "overall_label": 1,
+    "view_labels": {
+      "ocr": 1,
+      "time": 1
+    },
+    "evidence_text": [
+      "State agriculture dashboard lists average milk price above $3.20.",
+      "Digits on the shared poster are inconsistent with the agency template."
+    ],
+    "evidence_region": [],
+    "conflict_type": "ocr_inconsistency"
+  },
+  {
+    "id": "pilot_v2_004",
+    "image": "images/sample_004.jpg",
+    "text": "Thread claims the governor announced a midnight curfew starting tonight.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "time": 1,
+      "subject": 0
+    },
+    "evidence_text": [
+      "Governor's office posted that no curfew order was issued.",
+      "The emergency order registry has no filing for a curfew notice."
+    ],
+    "evidence_region": [],
+    "conflict_type": "entity_mismatch"
+  },
+  {
+    "id": "pilot_v2_005",
+    "image": "images/sample_005.jpg",
+    "text": "Post says this beach photo shows heavy snow in San Diego in August.",
+    "overall_label": 1,
+    "view_labels": {
+      "scene": 1,
+      "time": 1,
+      "location": 1
+    },
+    "evidence_text": [
+      "Weather records show no snowfall event in San Diego in August.",
+      "Palm vegetation and lighting are inconsistent with active snowfall."
+    ],
+    "evidence_region": [],
+    "conflict_type": "temporal_conflict"
+  },
+  {
+    "id": "pilot_v2_006",
+    "image": "images/sample_006.jpg",
+    "text": "Screenshot claims the central hospital shut down all emergency rooms today.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "ocr": 1,
+      "time": 0
+    },
+    "evidence_text": [
+      "Hospital operations page confirms emergency intake remained open all day.",
+      "The screenshot footer uses a fake hotline number."
+    ],
+    "evidence_region": [],
+    "conflict_type": "ocr_inconsistency"
+  },
+  {
+    "id": "pilot_v2_007",
+    "image": "images/sample_007.jpg",
+    "text": "Caption says the president endorsed Candidate Nova at last night's rally.",
+    "overall_label": 1,
+    "view_labels": {
+      "subject": 1,
+      "relation": 1,
+      "event": 0
+    },
+    "evidence_text": [
+      "Campaign transcript shows no endorsement statement by the president.",
+      "The rally photo originates from a non-election charity event."
+    ],
+    "evidence_region": [],
+    "conflict_type": "relation_conflict"
+  },
+  {
+    "id": "pilot_v2_009",
+    "image": "images/sample_009.jpg",
+    "text": "Viral card says nationwide school exams were postponed by two months.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "time": 1,
+      "ocr": 1
+    },
+    "evidence_text": [
+      "Education ministry calendar keeps exam dates unchanged.",
+      "The shared card uses an outdated ministry seal."
+    ],
+    "evidence_region": [],
+    "conflict_type": "ocr_inconsistency"
+  },
+  {
+    "id": "pilot_v2_011",
+    "image": "images/sample_011.jpg",
+    "text": "Claim says the mayor resigned this morning after audit leaks.",
+    "overall_label": 1,
+    "view_labels": {
+      "subject": 1,
+      "event": 1,
+      "time": 1
+    },
+    "evidence_text": [
+      "City council records show no resignation submission from the mayor.",
+      "Mayor's office released a same-day schedule of public meetings."
+    ],
+    "evidence_region": [],
+    "conflict_type": "entity_mismatch"
+  },
+  {
+    "id": "pilot_v2_012",
+    "image": "images/sample_012.jpg",
+    "text": "Post says this image captures yesterday's eclipse above Seattle.",
+    "overall_label": 1,
+    "view_labels": {
+      "time": 1,
+      "location": 1,
+      "scene": 1
+    },
+    "evidence_text": [
+      "Astronomy bulletins show no eclipse visible from Seattle yesterday.",
+      "Skyline in the image matches archival footage from another city."
+    ],
+    "evidence_region": [],
+    "conflict_type": "temporal_conflict"
+  },
+  {
+    "id": "pilot_v2_013",
+    "image": "images/sample_013.jpg",
+    "text": "Headline claims the airport suspended all flights because of runway fire.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "scene": 1,
+      "relation": 1
+    },
+    "evidence_text": [
+      "Airport operations board reports normal departures with minor delays only.",
+      "Fire service log describes a small vehicle incident outside runway areas."
+    ],
+    "evidence_region": [],
+    "conflict_type": "entity_mismatch"
+  },
+  {
+    "id": "pilot_v2_015",
+    "image": "images/sample_015.jpg",
+    "text": "Post says this crowd image shows protests in Austin tonight.",
+    "overall_label": 1,
+    "view_labels": {
+      "location": 1,
+      "time": 1,
+      "scene": 0
+    },
+    "evidence_text": [
+      "Reverse search links the image to a 2021 music festival in Phoenix.",
+      "Austin permit portal lists no protest booking at the claimed venue tonight."
+    ],
+    "evidence_region": [],
+    "conflict_type": "entity_mismatch"
+  },
+  {
+    "id": "pilot_v2_016",
+    "image": "images/sample_016.jpg",
+    "text": "Story claims a local bridge reopened six months ahead of schedule today.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "time": 1,
+      "relation": 1
+    },
+    "evidence_text": [
+      "Transport agency timeline still marks bridge reopening for next quarter.",
+      "Construction webcam shows major deck work still unfinished."
+    ],
+    "evidence_region": [],
+    "conflict_type": "temporal_conflict"
+  },
+  {
+    "id": "pilot_v2_017",
+    "image": "images/sample_017.jpg",
+    "text": "Message says tax refunds were canceled for all freelancers this year.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "relation": 1
+    },
+    "evidence_text": [
+      "Revenue service guidance confirms refunds remain available under current rules.",
+      "No legal notice indicates suspension of freelancer refunds."
+    ],
+    "evidence_region": [],
+    "conflict_type": "relation_conflict"
+  },
+  {
+    "id": "pilot_v2_018",
+    "image": "images/sample_018.jpg",
+    "text": "Post claims the finance minister was detained at the border last night.",
+    "overall_label": 1,
+    "view_labels": {
+      "subject": 1,
+      "event": 1,
+      "time": 1
+    },
+    "evidence_text": [
+      "Border authority denied any detention involving the finance minister.",
+      "Minister's verified schedule shows a televised meeting at that time."
+    ],
+    "evidence_region": [],
+    "conflict_type": "entity_mismatch"
+  },
+  {
+    "id": "pilot_v2_019",
+    "image": "images/sample_019.jpg",
+    "text": "Image caption says the museum's dinosaur skeleton was destroyed in a fire.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "scene": 1,
+      "tampering": 0
+    },
+    "evidence_text": [
+      "Museum statement confirms no fire damage and normal exhibit operations.",
+      "Insurance incident records list no fire report for the building."
+    ],
+    "evidence_region": [],
+    "conflict_type": "cross_modal_conflict"
+  },
+  {
+    "id": "pilot_v2_021",
+    "image": "images/sample_021.jpg",
+    "text": "Claim says this video frame shows floodwater inside the national library.",
+    "overall_label": 1,
+    "view_labels": {
+      "scene": 1,
+      "location": 1,
+      "tampering": 1
+    },
+    "evidence_text": [
+      "Library management released interior photos showing dry reading halls.",
+      "Reflections around waterlines are inconsistent with room lighting."
+    ],
+    "evidence_region": [],
+    "conflict_type": "cross_modal_conflict"
+  },
+  {
+    "id": "pilot_v2_022",
+    "image": "images/sample_022.jpg",
+    "text": "Thread says election day moved from Tuesday to Friday nationwide.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "time": 1,
+      "ocr": 1
+    },
+    "evidence_text": [
+      "Election commission confirmed Tuesday voting date in latest bulletin.",
+      "Shared notice uses an unofficial stamp and old hotline."
+    ],
+    "evidence_region": [],
+    "conflict_type": "ocr_inconsistency"
+  },
+  {
+    "id": "pilot_v2_023",
+    "image": "images/sample_023.jpg",
+    "text": "Post claims the wildfire map shows flames reaching the capital overnight.",
+    "overall_label": 1,
+    "view_labels": {
+      "location": 1,
+      "time": 1,
+      "ocr": 0
+    },
+    "evidence_text": [
+      "National fire map places the nearest active front 180 km away.",
+      "Capital emergency office issued no evacuation or smoke alert overnight."
+    ],
+    "evidence_region": [],
+    "conflict_type": "cross_modal_conflict"
+  },
+  {
+    "id": "pilot_v2_025",
+    "image": "images/sample_025.jpg",
+    "text": "Image post says a military convoy entered the city center this morning.",
+    "overall_label": 1,
+    "view_labels": {
+      "scene": 1,
+      "location": 1,
+      "time": 1
+    },
+    "evidence_text": [
+      "Traffic cams show standard civilian flow in the city center all morning.",
+      "Defense ministry said no convoy movement occurred in the area."
+    ],
+    "evidence_region": [],
+    "conflict_type": "cross_modal_conflict"
+  },
+  {
+    "id": "pilot_v2_026",
+    "image": "images/sample_026.jpg",
+    "text": "Post claims this receipt shows bread prices tripled overnight.",
+    "overall_label": 1,
+    "view_labels": {
+      "ocr": 1,
+      "time": 1,
+      "relation": 1
+    },
+    "evidence_text": [
+      "Retail association data shows only minor weekly price fluctuation.",
+      "Receipt timestamp format does not match local POS standards."
+    ],
+    "evidence_region": [],
+    "conflict_type": "ocr_inconsistency"
+  },
+  {
+    "id": "pilot_v2_027",
+    "image": "images/sample_027.jpg",
+    "text": "Rumor says the university revoked all international admissions for fall.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "relation": 1,
+      "time": 0
+    },
+    "evidence_text": [
+      "University admissions page still lists active international intake deadlines.",
+      "Registrar memo denies any blanket revocation policy."
+    ],
+    "evidence_region": [],
+    "conflict_type": "relation_conflict"
+  },
+  {
+    "id": "pilot_v2_028",
+    "image": "images/sample_028.jpg",
+    "text": "Caption states the dam collapsed at dawn, flooding three towns.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "time": 1,
+      "location": 1
+    },
+    "evidence_text": [
+      "Water authority confirms dam integrity with no breach alarms.",
+      "Downstream municipalities reported normal river levels this morning."
+    ],
+    "evidence_region": [],
+    "conflict_type": "temporal_conflict"
+  },
+  {
+    "id": "pilot_v2_030",
+    "image": "images/sample_030.jpg",
+    "text": "Photo says this scoreboard is from tonight's final with a 9-0 upset.",
+    "overall_label": 1,
+    "view_labels": {
+      "event": 1,
+      "ocr": 1,
+      "time": 1
+    },
+    "evidence_text": [
+      "League live feed shows a 2-1 result in tonight's final.",
+      "Scoreboard font in the image differs from venue display systems."
+    ],
+    "evidence_region": [],
+    "conflict_type": "ocr_inconsistency"
+  },
+  {
+    "id": "pilot_v2_031",
+    "image": "images/sample_031.jpg",
+    "text": "City notice says weekend farmers market will run at Riverside Square on Saturday.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Municipal events page lists the market at Riverside Square this Saturday.",
+      "Vendor coordinator confirmed normal opening hours."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_032",
+    "image": "images/sample_032.jpg",
+    "text": "Report says the commuter rail resumed service at 8 PM after negotiations.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "relation": 0
+    },
+    "evidence_text": [
+      "Transit authority bulletin confirms train service restart at 8 PM.",
+      "Union and operator released a joint restart statement."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_034",
+    "image": "images/sample_034.jpg",
+    "text": "Article says the river cleanup removed about 12 tons of debris this month.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Environmental office report logs 11.9 tons removed this month.",
+      "Cleanup contractor summary aligns with the reported figure."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_035",
+    "image": "images/sample_035.jpg",
+    "text": "Update says a free vaccination clinic opened at West Hall today.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "location": 0,
+      "ocr": 0
+    },
+    "evidence_text": [
+      "County health page lists West Hall clinic slots for today.",
+      "Poster hotline and venue details match official listings."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_037",
+    "image": "images/sample_037.jpg",
+    "text": "Notice says schools in Lake District reopen Monday after pipe repairs.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "District memo confirms Monday reopening after repairs.",
+      "Parent portal posted attendance instructions for Monday."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_038",
+    "image": "images/sample_038.jpg",
+    "text": "Post says the mayor launched a tree-planting campaign in North Park.",
+    "overall_label": 0,
+    "view_labels": {
+      "subject": 0,
+      "event": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "City hall release documents campaign launch in North Park.",
+      "Press photos show the mayor at the announced site."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_039",
+    "image": "images/sample_039.jpg",
+    "text": "Local channel reports the museum's night exhibit opens this Friday.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Museum calendar lists Friday as the exhibit opening date.",
+      "Ticket portal enabled bookings beginning Friday evening."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_040",
+    "image": "images/sample_040.jpg",
+    "text": "Claim says the health ministry approved updated flu guidance this week.",
+    "overall_label": 0,
+    "view_labels": {
+      "subject": 0,
+      "event": 0,
+      "time": 0
+    },
+    "evidence_text": [
+      "Ministry circular published updated flu guidance this week.",
+      "Hospital networks circulated the same guidance summary."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_042",
+    "image": "images/sample_042.jpg",
+    "text": "Alert says Pine Street remains closed this morning due to road repairs.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0,
+      "scene": 0
+    },
+    "evidence_text": [
+      "Public works board confirms Pine Street closure this morning.",
+      "Traffic camera snapshots show barriers at both junctions."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_043",
+    "image": "images/sample_043.jpg",
+    "text": "Thread says coastal ferry route B resumed after weather delays.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "relation": 0
+    },
+    "evidence_text": [
+      "Port authority status board marks Route B as resumed.",
+      "Operator app restored ticketing for Route B departures."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_045",
+    "image": "images/sample_045.jpg",
+    "text": "Community update says the annual book fair starts at Central Hall tomorrow.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Organizer schedule confirms Central Hall opening tomorrow morning.",
+      "City events API lists matching dates and venue."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_046",
+    "image": "images/sample_046.jpg",
+    "text": "Report says rainfall alerts remain active for the southern counties tonight.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "National weather service keeps severe rain watch on southern counties tonight.",
+      "County emergency channels repeated the same advisory window."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_047",
+    "image": "images/sample_047.jpg",
+    "text": "Post claims the central bank kept benchmark rates unchanged this month.",
+    "overall_label": 0,
+    "view_labels": {
+      "subject": 0,
+      "event": 0,
+      "time": 0
+    },
+    "evidence_text": [
+      "Central bank statement confirms no rate change this month.",
+      "Economic bulletin table shows unchanged benchmark value."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_048",
+    "image": "images/sample_048.jpg",
+    "text": "Headline says the actor attended a charity gala in Madrid on Monday.",
+    "overall_label": 0,
+    "view_labels": {
+      "subject": 0,
+      "event": 0,
+      "location": 0,
+      "time": 0
+    },
+    "evidence_text": [
+      "Gala organizer published attendance photos from Madrid on Monday.",
+      "Verified media reports place the actor at the same event."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_049",
+    "image": "images/sample_049.jpg",
+    "text": "City update says recycling pickup moved to Thursday for District 4.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0,
+      "relation": 0
+    },
+    "evidence_text": [
+      "Sanitation department schedule shows Thursday pickup for District 4.",
+      "Resident alert app issued the same route adjustment."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_051",
+    "image": "images/sample_051.jpg",
+    "text": "Report says the airport added two early flights to Toronto on weekdays.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "location": 0,
+      "relation": 0
+    },
+    "evidence_text": [
+      "Airport timetable lists two additional weekday Toronto departures.",
+      "Airline booking pages show the new morning slots."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_052",
+    "image": "images/sample_052.jpg",
+    "text": "Claim says a relief concert raised over $2 million for flood recovery.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "relation": 0,
+      "subject": 0
+    },
+    "evidence_text": [
+      "Organizer statement reports $2.1 million raised for recovery funds.",
+      "Partner NGO acknowledged receiving the pledged transfer."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_053",
+    "image": "images/sample_053.jpg",
+    "text": "Post states this image shows tonight's lunar eclipse over Santiago.",
+    "overall_label": 0,
+    "view_labels": {
+      "scene": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Astronomy observatory confirmed lunar eclipse visibility in Santiago tonight.",
+      "Local photographers posted matching sky conditions from Santiago."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_054",
+    "image": "images/sample_054.jpg",
+    "text": "Notice says district court hearings will be remote on Wednesday.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Court administration bulletin schedules remote hearings on Wednesday.",
+      "Case management portal displays video links for Wednesday dockets."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_055",
+    "image": "images/sample_055.jpg",
+    "text": "Update says the city's bike-share added 120 new bicycles this month.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Transport office inventory logs 120 additional bike-share units.",
+      "Operator map shows new stations activated this month."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_056",
+    "image": "images/sample_056.jpg",
+    "text": "Post says the food safety agency recalled lot A17 of canned tuna.",
+    "overall_label": 0,
+    "view_labels": {
+      "subject": 0,
+      "event": 0,
+      "ocr": 0,
+      "relation": 0
+    },
+    "evidence_text": [
+      "Food safety bulletin lists recall for canned tuna lot A17.",
+      "Retailers posted matching removal notices for lot A17."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_057",
+    "image": "images/sample_057.jpg",
+    "text": "Report says the science expo opens at River Convention Center on May 3.",
+    "overall_label": 0,
+    "view_labels": {
+      "event": 0,
+      "time": 0,
+      "location": 0
+    },
+    "evidence_text": [
+      "Expo website lists May 3 opening at River Convention Center.",
+      "Sponsor announcements repeat the same launch details."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_059",
+    "image": "images/sample_059.jpg",
+    "text": "Post says the education board approved new digital textbook grants.",
+    "overall_label": 0,
+    "view_labels": {
+      "subject": 0,
+      "event": 0,
+      "relation": 0
+    },
+    "evidence_text": [
+      "Board meeting minutes show approval of digital textbook grants.",
+      "School districts received grant allocation notices."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  },
+  {
+    "id": "pilot_v2_060",
+    "image": "images/sample_060.jpg",
+    "text": "Alert says this weather map correctly marks a heat advisory for Metro East.",
+    "overall_label": 0,
+    "view_labels": {
+      "ocr": 0,
+      "location": 0,
+      "event": 0
+    },
+    "evidence_text": [
+      "Meteorological map marks Metro East under heat advisory.",
+      "Public alert SMS sent the same advisory region."
+    ],
+    "evidence_region": [],
+    "conflict_type": null
+  }
+]
