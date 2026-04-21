@@ -48,3 +48,6 @@ The following are not required in the first runnable version:
 3. Prepare a small pilot dataset.
 4. Add a minimal multi-view prediction head.
 5. Run the first overall + view-level experiment.
+## Pilot Dataset
+- Added initial pilot file: `data/pilot/mv2r_pilot.json` (20 schema-compliant samples for first real MV2R experiment).
+
