@@ -3,7 +3,7 @@ import json
 import random
 import sys
 from pathlib import Path
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, Optional
 
 import torch
 from torch import nn
@@ -16,44 +16,21 @@ if str(REPO_ROOT) not in sys.path:
 from src.data.collator import MV2RCollator
 from src.data.dataset import MV2RDataset
 from src.models.aggregator import MV2RAggregator
+from src.models.shared_encoder import build_shared_encoder
 from src.models.view_head import MV2RViewHead
-
-
-class SimpleTextEncoder(nn.Module):
-    """Very small placeholder text encoder that outputs [B, H] features."""
-
-    def __init__(self, hidden_dim: int, vocab_size: int = 5000) -> None:
-        super().__init__()
-        self.hidden_dim = hidden_dim
-        self.vocab_size = vocab_size
-        self.embedding = nn.EmbeddingBag(vocab_size, hidden_dim, mode="mean")
-
-    def _text_to_token_ids(self, text: str) -> List[int]:
-        tokens = text.lower().split()
-        if not tokens:
-            return [0]
-        return [abs(hash(tok)) % self.vocab_size for tok in tokens]
-
-    def forward(self, texts: List[str]) -> torch.Tensor:
-        all_ids: List[int] = []
-        offsets: List[int] = [0]
-
-        for text in texts:
-            ids = self._text_to_token_ids(text)
-            all_ids.extend(ids)
-            offsets.append(offsets[-1] + len(ids))
-
-        input_ids = torch.tensor(all_ids, dtype=torch.long, device=self.embedding.weight.device)
-        offsets_tensor = torch.tensor(offsets[:-1], dtype=torch.long, device=self.embedding.weight.device)
-        return self.embedding(input_ids, offsets_tensor)
 
 
 class MinimalMV2RModel(nn.Module):
     """Minimal end-to-end module producing shared feature, view logits, and overall logits."""
 
-    def __init__(self, hidden_dim: int, num_classes: int = 2) -> None:
+    def __init__(
+        self,
+        hidden_dim: int,
+        num_classes: int = 2,
+        encoder_type: str = "simple_text",
+    ) -> None:
         super().__init__()
-        self.encoder = SimpleTextEncoder(hidden_dim=hidden_dim)
+        self.encoder = build_shared_encoder(encoder_type=encoder_type, hidden_dim=hidden_dim)
         self.view_head = MV2RViewHead(hidden_dim=hidden_dim)
         self.aggregator = MV2RAggregator(
             input_dim=hidden_dim,
@@ -62,11 +39,7 @@ class MinimalMV2RModel(nn.Module):
         )
 
     def forward(self, batch: Dict[str, object]) -> Dict[str, torch.Tensor]:
-        texts = batch["texts"]
-        if not isinstance(texts, list):
-            raise TypeError("batch['texts'] must be a list of strings")
-
-        shared_feature = self.encoder(texts)
+        shared_feature = self.encoder(batch)
         view_logits = self.view_head(shared_feature)
         overall_logits = self.aggregator(shared_feature)
 
@@ -194,7 +167,7 @@ def run_sanity_check(args: argparse.Namespace) -> None:
     batch = next(iter(dataloader))
 
     device = torch.device(args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu"))
-    model = MinimalMV2RModel(hidden_dim=args.hidden_dim).to(device)
+    model = MinimalMV2RModel(hidden_dim=args.hidden_dim, encoder_type=args.encoder_type).to(device)
 
     for key in ("overall_labels", "view_labels"):
         batch[key] = batch[key].to(device)
@@ -243,6 +216,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--val-data-path", type=str, default=None, help="Optional validation JSON/JSONL file")
     parser.add_argument("--batch-size", type=int, default=4)
     parser.add_argument("--hidden-dim", type=int, default=128)
+    parser.add_argument(
+        "--encoder-type",
+        type=str,
+        default="simple_text",
+        choices=["simple_text"],
+        help="Shared encoder type",
+    )
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--view-loss-weight", type=float, default=1.0)
@@ -283,7 +263,7 @@ def main() -> None:
     if args.val_data_path:
         val_loader = build_dataloader(args.val_data_path, args.batch_size, shuffle=False)
 
-    model = MinimalMV2RModel(hidden_dim=args.hidden_dim).to(device)
+    model = MinimalMV2RModel(hidden_dim=args.hidden_dim, encoder_type=args.encoder_type).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     start_epoch = 1
