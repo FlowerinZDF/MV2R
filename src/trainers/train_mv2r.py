@@ -18,6 +18,8 @@ from src.data.dataset import MV2RDataset
 from src.models.aggregator import MV2RAggregator
 from src.models.shared_encoder import build_shared_encoder
 from src.models.view_head import MV2RViewHead
+from src.eval.eval_overall import evaluate_overall
+from src.eval.eval_view import evaluate_view
 
 
 class MinimalMV2RModel(nn.Module):
@@ -120,6 +122,44 @@ def run_epoch(
         "overall_loss": total_overall / steps,
         "view_loss": total_view / steps,
     }
+
+
+def compute_eval_metrics(
+    model: nn.Module,
+    dataloader: DataLoader,
+    device: torch.device,
+) -> Dict[str, Dict[str, float]]:
+    model.eval()
+
+    overall_logits = []
+    overall_labels = []
+    view_logits = []
+    view_labels = []
+
+    with torch.no_grad():
+        for batch in dataloader:
+            for key in ("overall_labels", "view_labels"):
+                if key in batch:
+                    batch[key] = batch[key].to(device)
+
+            outputs = model(batch)
+            overall_logits.append(outputs["overall_logits"].detach().cpu())
+            overall_labels.append(batch["overall_labels"].detach().cpu())
+            view_logits.append(outputs["view_logits"].detach().cpu())
+            view_labels.append(batch["view_labels"].detach().cpu())
+
+    if not overall_logits:
+        return {"overall": {}, "view": {}}
+
+    all_overall_logits = torch.cat(overall_logits, dim=0)
+    all_overall_labels = torch.cat(overall_labels, dim=0)
+    all_view_logits = torch.cat(view_logits, dim=0)
+    all_view_labels = torch.cat(view_labels, dim=0)
+
+    overall_metrics = evaluate_overall(all_overall_logits, all_overall_labels)
+    view_metrics = evaluate_view(all_view_logits, all_view_labels)
+
+    return {"overall": overall_metrics, "view": view_metrics}
 
 
 def save_checkpoint(
@@ -297,11 +337,15 @@ def main() -> None:
                 optimizer=None,
                 view_loss_weight=args.view_loss_weight,
             )
+            eval_metrics = compute_eval_metrics(model=model, dataloader=val_loader, device=device)
             print(
                 f"Epoch {epoch} | "
                 f"val total={val_metrics['total_loss']:.6f} "
                 f"overall={val_metrics['overall_loss']:.6f} "
-                f"view={val_metrics['view_loss']:.6f}"
+                f"view={val_metrics['view_loss']:.6f} "
+                f"| overall_acc={eval_metrics['overall'].get('accuracy', 0.0):.4f} "
+                f"overall_f1={eval_metrics['overall'].get('f1', 0.0):.4f} "
+                f"view_micro_f1={eval_metrics['view'].get('micro_f1', 0.0):.4f}"
             )
 
         ckpt_path = save_checkpoint(output_dir, epoch, model, optimizer, args)
