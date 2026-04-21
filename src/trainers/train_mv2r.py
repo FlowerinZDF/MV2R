@@ -276,7 +276,7 @@ def parse_args() -> argparse.Namespace:
         "--encoder-type",
         type=str,
         default="simple_text",
-        choices=["simple_text"],
+        choices=["simple_text", "multimodal_ready_text"],
         help="Shared encoder type",
     )
     parser.add_argument(
