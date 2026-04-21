@@ -3,7 +3,7 @@ import json
 import random
 import sys
 from pathlib import Path
-from typing import Dict, Optional
+from typing import Dict, Literal, Optional
 
 import torch
 from torch import nn
@@ -30,20 +30,32 @@ class MinimalMV2RModel(nn.Module):
         hidden_dim: int,
         num_classes: int = 2,
         encoder_type: str = "simple_text",
+        aggregator_mode: Literal["shared", "view_logits", "shared_and_view_logits"] = "shared",
     ) -> None:
         super().__init__()
         self.encoder = build_shared_encoder(encoder_type=encoder_type, hidden_dim=hidden_dim)
         self.view_head = MV2RViewHead(hidden_dim=hidden_dim)
+        self.aggregator_mode = aggregator_mode
+
+        aggregator_input_dim = hidden_dim if aggregator_mode != "view_logits" else self.view_head.num_views
         self.aggregator = MV2RAggregator(
-            input_dim=hidden_dim,
+            input_dim=aggregator_input_dim,
             num_classes=num_classes,
-            input_type="shared",
+            input_type=aggregator_mode,
+            view_logits_dim=self.view_head.num_views if aggregator_mode == "shared_and_view_logits" else None,
         )
 
     def forward(self, batch: Dict[str, object]) -> Dict[str, torch.Tensor]:
         shared_feature = self.encoder(batch)
         view_logits = self.view_head(shared_feature)
-        overall_logits = self.aggregator(shared_feature)
+        if self.aggregator_mode == "shared":
+            overall_logits = self.aggregator(shared_feature)
+        elif self.aggregator_mode == "view_logits":
+            overall_logits = self.aggregator(view_logits)
+        elif self.aggregator_mode == "shared_and_view_logits":
+            overall_logits = self.aggregator(shared_feature, view_logits=view_logits)
+        else:
+            raise ValueError(f"Unsupported aggregator_mode: {self.aggregator_mode}")
 
         return {
             "shared_feature": shared_feature,
@@ -207,7 +219,11 @@ def run_sanity_check(args: argparse.Namespace) -> None:
     batch = next(iter(dataloader))
 
     device = torch.device(args.device if args.device else ("cuda" if torch.cuda.is_available() else "cpu"))
-    model = MinimalMV2RModel(hidden_dim=args.hidden_dim, encoder_type=args.encoder_type).to(device)
+    model = MinimalMV2RModel(
+        hidden_dim=args.hidden_dim,
+        encoder_type=args.encoder_type,
+        aggregator_mode=args.aggregator_mode,
+    ).to(device)
 
     for key in ("overall_labels", "view_labels"):
         batch[key] = batch[key].to(device)
@@ -263,6 +279,13 @@ def parse_args() -> argparse.Namespace:
         choices=["simple_text"],
         help="Shared encoder type",
     )
+    parser.add_argument(
+        "--aggregator-mode",
+        type=str,
+        default="shared",
+        choices=["shared", "view_logits", "shared_and_view_logits"],
+        help="Overall aggregation input mode",
+    )
     parser.add_argument("--epochs", type=int, default=3)
     parser.add_argument("--learning-rate", type=float, default=1e-3)
     parser.add_argument("--view-loss-weight", type=float, default=1.0)
@@ -303,7 +326,11 @@ def main() -> None:
     if args.val_data_path:
         val_loader = build_dataloader(args.val_data_path, args.batch_size, shuffle=False)
 
-    model = MinimalMV2RModel(hidden_dim=args.hidden_dim, encoder_type=args.encoder_type).to(device)
+    model = MinimalMV2RModel(
+        hidden_dim=args.hidden_dim,
+        encoder_type=args.encoder_type,
+        aggregator_mode=args.aggregator_mode,
+    ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
 
     start_epoch = 1
