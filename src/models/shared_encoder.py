@@ -267,10 +267,14 @@ class MultimodalLightSharedEncoder(MV2RSharedEncoderBase):
         image_state_dim: int = 8,
         dropout: float = 0.1,
         use_evidence_text: bool = True,
+        use_conflict_type: bool = False,
+        use_image_hint: bool = True,
     ) -> None:
         super().__init__()
         self.hidden_dim = hidden_dim
         self.use_evidence_text = use_evidence_text
+        self.use_conflict_type = use_conflict_type
+        self.use_image_hint = use_image_hint
 
         self.main_text_encoder = SimpleTextSharedEncoder(
             hidden_dim=hidden_dim,
@@ -301,6 +305,14 @@ class MultimodalLightSharedEncoder(MV2RSharedEncoderBase):
             nn.Dropout(dropout),
             nn.LayerNorm(hidden_dim),
         )
+        self._conflict_type_vocab_size = 32
+
+    def _conflict_type_to_id(self, conflict_type: object) -> int:
+        if not isinstance(conflict_type, str) or not conflict_type:
+            return 0
+        if self._conflict_type_vocab_size <= 1:
+            return 0
+        return (abs(hash(conflict_type.lower())) % (self._conflict_type_vocab_size - 1)) + 1
 
     def _coerce_optional_texts(
         self, values: object, batch_size: int, field_name: str, fallback: str = ""
@@ -362,10 +374,23 @@ class MultimodalLightSharedEncoder(MV2RSharedEncoderBase):
             evidence_text_feature = self.evidence_text_encoder({"texts": evidence_texts})
 
         image_feature = self._compute_image_feature(
-            image_paths=batch.get("image_paths"),
+            image_paths=batch.get("image_paths") if self.use_image_hint else None,
             batch_size=batch_size,
             device=device,
         )
+        if self.use_conflict_type:
+            conflict_types = self._coerce_optional_texts(
+                batch.get("conflict_types"),
+                batch_size,
+                field_name="conflict_types",
+                fallback="",
+            )
+            conflict_ids = torch.tensor(
+                [self._conflict_type_to_id(value) for value in conflict_types],
+                dtype=torch.float32,
+                device=device,
+            ).unsqueeze(-1)
+            image_feature = image_feature + (0.01 * conflict_ids)
 
         fused = torch.cat([main_text_feature, evidence_text_feature, image_feature], dim=-1)
         return self.fusion(fused)
