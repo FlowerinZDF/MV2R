@@ -9,7 +9,7 @@ import random
 import re
 from collections import Counter
 from pathlib import Path
-from typing import Dict, Iterable, List, Optional, Sequence, Tuple
+from typing import Dict, Iterable, List, Optional, Tuple
 
 URL_RE = re.compile(r"https?://\S+|www\.\S+", re.IGNORECASE)
 IMAGE_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".gif", ".webp"}
@@ -19,6 +19,7 @@ class ParseStats:
     def __init__(self) -> None:
         self.discard_empty_text = 0
         self.discard_missing_image = 0
+        self.raw_records_by_file: Dict[str, int] = {}
 
 
 
@@ -31,7 +32,7 @@ def clean_text(text: str) -> str:
 
 def split_image_candidates(raw: str) -> List[str]:
     chunks = re.split(r"[\s,;|]+", raw.strip())
-    return [c for c in chunks if c]
+    return [c for c in chunks if c and c.lower() != "null"]
 
 
 
@@ -44,88 +45,26 @@ def looks_like_image_token(token: str) -> bool:
 
 
 
-def parse_tab_like_line(line: str) -> Optional[Tuple[str, str, List[str]]]:
-    parts = [p.strip() for p in line.split("\t") if p.strip()]
-    if len(parts) < 2:
-        return None
+def parse_weibo_file(path: Path) -> Tuple[List[Tuple[str, str, List[str]]], int]:
+    raw_lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
 
-    post_id = parts[0]
-    text = ""
-    image_candidates: List[str] = []
-
-    for token in parts[1:]:
-        candidates = split_image_candidates(token)
-        imageish = [c for c in candidates if looks_like_image_token(c)]
-        non_imageish = [c for c in candidates if not looks_like_image_token(c)]
-
-        if imageish and len(non_imageish) == 0:
-            image_candidates.extend(imageish)
-        elif not text:
-            text = token
-
-    if not text and len(parts) > 1:
-        text = parts[1]
-
-    return post_id, text, image_candidates
-
-
-
-def parse_three_line_blocks(lines: Sequence[str]) -> List[Tuple[str, str, List[str]]]:
-    blocks: List[List[str]] = []
-    current: List[str] = []
-
-    for raw in lines:
-        line = raw.strip()
-        if not line:
-            if current:
-                blocks.append(current)
-                current = []
-            continue
-        current.append(line)
-
-    if current:
-        blocks.append(current)
-
+    record_count = len(raw_lines) // 3
     items: List[Tuple[str, str, List[str]]] = []
-    for block in blocks:
-        if len(block) < 3:
-            continue
-        post_id = block[0]
-        text = block[1]
-        image_candidates: List[str] = []
-        for section in block[2:]:
-            image_candidates.extend(split_image_candidates(section))
+
+    for i in range(0, record_count * 3, 3):
+        metadata_line = raw_lines[i].strip()
+        image_line = raw_lines[i + 1].strip()
+        text_line = raw_lines[i + 2].strip()
+
+        metadata_parts = metadata_line.split("|")
+        post_id = metadata_parts[0].strip() if metadata_parts else ""
+
+        image_candidates = split_image_candidates(image_line)
+        text = text_line
+
         items.append((post_id, text, image_candidates))
 
-    return items
-
-
-
-def parse_weibo_file(path: Path) -> List[Tuple[str, str, List[str]]]:
-    raw_lines = path.read_text(encoding="utf-8", errors="ignore").splitlines()
-    non_empty = [ln for ln in raw_lines if ln.strip()]
-
-    tab_line_count = sum(1 for ln in non_empty if "\t" in ln)
-    if non_empty and tab_line_count / len(non_empty) > 0.5:
-        parsed = []
-        for ln in non_empty:
-            item = parse_tab_like_line(ln)
-            if item is not None:
-                parsed.append(item)
-        if parsed:
-            return parsed
-
-    parsed_blocks = parse_three_line_blocks(raw_lines)
-    if parsed_blocks:
-        return parsed_blocks
-
-    # fallback: attempt tab parsing on all lines
-    parsed = []
-    for ln in non_empty:
-        item = parse_tab_like_line(ln)
-        if item is not None:
-            parsed.append(item)
-    return parsed
+    return items, record_count
 
 
 
@@ -153,6 +92,9 @@ def resolve_image(candidates: Iterable[str], image_index: Dict[str, str]) -> Opt
     for raw in candidates:
         c = raw.strip().strip('"\'')
         if not c:
+            continue
+
+        if not looks_like_image_token(c):
             continue
 
         key = Path(c).name.lower()
@@ -190,7 +132,9 @@ def build_split(
     records: List[Dict[str, object]] = []
 
     for path, label in ((rumor_path, 1), (nonrumor_path, 0)):
-        samples = parse_weibo_file(path)
+        samples, raw_count = parse_weibo_file(path)
+        stats.raw_records_by_file[str(path)] = raw_count
+
         for post_id, raw_text, candidates in samples:
             text = clean_text(raw_text)
             if not text:
@@ -299,6 +243,8 @@ def build_dataset(args: argparse.Namespace) -> None:
         "Discarded samples: "
         f"empty_text={stats.discard_empty_text}, missing_image={stats.discard_missing_image}"
     )
+    for path, raw_count in sorted(stats.raw_records_by_file.items()):
+        print(f"Raw 3-line records parsed from {path}: {raw_count}")
 
 
 
