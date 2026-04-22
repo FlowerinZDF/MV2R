@@ -89,3 +89,5 @@ The following are not required in the first runnable version:
 | `multimodal_ready_text` + `shared_and_view_logits` (default safe) | Current trusted pilot baseline. |
 | `multimodal_light` + `shared_and_view_logits` | Weak image hints did not beat trusted baseline. |
 | `multimodal_image_features` + `shared_and_view_logits` | Mock image features did not beat trusted baseline. |
+
+- Next experiment stage: replace mock image vectors with real semantic image embeddings (CLIP-based pre-extracted image features) when running `multimodal_image_features`.
