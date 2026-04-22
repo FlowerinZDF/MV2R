@@ -1,6 +1,8 @@
+import json
 import re
 from abc import ABC, abstractmethod
-from typing import Dict, List, Sequence
+from pathlib import Path
+from typing import Dict, List, Optional, Sequence
 
 import torch
 from torch import nn
@@ -396,6 +398,192 @@ class MultimodalLightSharedEncoder(MV2RSharedEncoderBase):
         return self.fusion(fused)
 
 
+class MultimodalImageFeaturesSharedEncoder(MV2RSharedEncoderBase):
+    """Multimodal shared encoder using pre-extracted image feature vectors.
+
+    Data contract (no pilot JSON schema changes required):
+    - `batch["texts"]`: required list[str]
+    - `batch["evidence_text"]`: optional list[str] (or list[any], coerced to fallback)
+    - image features are looked up from a separate JSON file, keyed by sample id
+      and/or image path, using `batch["sample_ids"]` / `batch["image_paths"]`.
+    """
+
+    def __init__(
+        self,
+        hidden_dim: int,
+        image_feature_path: Optional[str] = None,
+        image_feature_key: str = "auto",
+        image_feature_dim: Optional[int] = None,
+        text_vocab_size: int = 12000,
+        text_token_dim: int = 128,
+        text_max_tokens: int = 64,
+        evidence_vocab_size: int = 6000,
+        evidence_token_dim: int = 64,
+        evidence_max_tokens: int = 40,
+        dropout: float = 0.1,
+        use_evidence_text: bool = True,
+    ) -> None:
+        super().__init__()
+        self.hidden_dim = hidden_dim
+        self.use_evidence_text = use_evidence_text
+        self.image_feature_key = image_feature_key
+
+        self.main_text_encoder = SimpleTextSharedEncoder(
+            hidden_dim=hidden_dim,
+            vocab_size=text_vocab_size,
+            token_dim=text_token_dim,
+            max_tokens=text_max_tokens,
+            dropout=dropout,
+        )
+        self.evidence_text_encoder = SimpleTextSharedEncoder(
+            hidden_dim=hidden_dim,
+            vocab_size=evidence_vocab_size,
+            token_dim=evidence_token_dim,
+            max_tokens=evidence_max_tokens,
+            dropout=dropout,
+        )
+
+        self.image_feature_lookup: Dict[str, List[float]] = {}
+        if image_feature_path:
+            self.image_feature_lookup = self._load_image_feature_lookup(Path(image_feature_path))
+
+        inferred_dim = image_feature_dim if image_feature_dim and image_feature_dim > 0 else None
+        if inferred_dim is None and self.image_feature_lookup:
+            first_vec = next(iter(self.image_feature_lookup.values()))
+            inferred_dim = len(first_vec)
+        self.image_feature_dim = inferred_dim or hidden_dim
+
+        self.image_feature_projection = nn.Sequential(
+            nn.Linear(self.image_feature_dim, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.LayerNorm(hidden_dim),
+        )
+        self.fusion = nn.Sequential(
+            nn.Linear(hidden_dim * 3, hidden_dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.LayerNorm(hidden_dim),
+        )
+
+    def _load_image_feature_lookup(self, feature_path: Path) -> Dict[str, List[float]]:
+        if not feature_path.exists():
+            raise FileNotFoundError(f"image_feature_path not found: {feature_path}")
+        if feature_path.suffix.lower() != ".json":
+            raise ValueError("Only .json feature files are supported for multimodal_image_features")
+
+        with feature_path.open("r", encoding="utf-8") as f:
+            payload = json.load(f)
+
+        if isinstance(payload, dict) and "features" in payload:
+            records = payload["features"]
+        else:
+            records = payload
+
+        if not isinstance(records, dict):
+            raise ValueError("Image feature JSON must be a dict or contain a dict under 'features'")
+
+        lookup: Dict[str, List[float]] = {}
+        for key, vector in records.items():
+            if not isinstance(key, str):
+                continue
+            if not isinstance(vector, list) or not vector:
+                continue
+            lookup[key] = [float(v) for v in vector]
+
+        return lookup
+
+    def _coerce_optional_texts(
+        self,
+        values: object,
+        batch_size: int,
+        field_name: str,
+        fallback: str = "",
+    ) -> List[str]:
+        if values is None:
+            return [fallback] * batch_size
+        if not isinstance(values, list):
+            raise TypeError(f"batch['{field_name}'] must be a list when provided")
+        if len(values) != batch_size:
+            raise ValueError(f"batch['{field_name}'] length must match batch['texts'] length")
+        return [value if isinstance(value, str) else fallback for value in values]
+
+    def _resolve_feature_key(
+        self,
+        idx: int,
+        sample_ids: Optional[List[object]],
+        image_paths: Optional[List[object]],
+    ) -> Optional[str]:
+        sample_key = None
+        image_key = None
+        if sample_ids is not None and idx < len(sample_ids):
+            sid = sample_ids[idx]
+            if isinstance(sid, str) and sid:
+                sample_key = sid
+        if image_paths is not None and idx < len(image_paths):
+            ipath = image_paths[idx]
+            if isinstance(ipath, str) and ipath:
+                image_key = ipath
+
+        if self.image_feature_key == "sample_id":
+            return sample_key
+        if self.image_feature_key == "image_path":
+            return image_key
+        # auto mode prefers sample id, then image path.
+        return sample_key or image_key
+
+    def _encode_image_features(self, batch: Dict[str, object], batch_size: int, device: torch.device) -> torch.Tensor:
+        sample_ids_obj = batch.get("sample_ids")
+        image_paths_obj = batch.get("image_paths")
+
+        sample_ids = sample_ids_obj if isinstance(sample_ids_obj, list) else None
+        image_paths = image_paths_obj if isinstance(image_paths_obj, list) else None
+
+        if sample_ids is not None and len(sample_ids) != batch_size:
+            raise ValueError("batch['sample_ids'] length must match batch['texts'] length")
+        if image_paths is not None and len(image_paths) != batch_size:
+            raise ValueError("batch['image_paths'] length must match batch['texts'] length")
+
+        matrix = torch.zeros((batch_size, self.image_feature_dim), dtype=torch.float32, device=device)
+
+        for i in range(batch_size):
+            key = self._resolve_feature_key(i, sample_ids=sample_ids, image_paths=image_paths)
+            if not key:
+                continue
+            values = self.image_feature_lookup.get(key)
+            if values is None:
+                continue
+            vector = values[: self.image_feature_dim]
+            if len(vector) < self.image_feature_dim:
+                vector = vector + [0.0] * (self.image_feature_dim - len(vector))
+            matrix[i] = torch.tensor(vector, dtype=torch.float32, device=device)
+
+        return self.image_feature_projection(matrix)
+
+    def forward(self, batch: Dict[str, object]) -> torch.Tensor:
+        texts = batch.get("texts")
+        if not isinstance(texts, list):
+            raise TypeError("batch['texts'] must be a list of strings")
+
+        batch_size = len(texts)
+        device = self.main_text_encoder.embedding.weight.device
+
+        text_feature = self.main_text_encoder(batch)
+
+        evidence_feature = torch.zeros((batch_size, self.hidden_dim), dtype=torch.float32, device=device)
+        if self.use_evidence_text:
+            evidence_texts = self._coerce_optional_texts(
+                batch.get("evidence_text"),
+                batch_size,
+                field_name="evidence_text",
+            )
+            evidence_feature = self.evidence_text_encoder({"texts": evidence_texts})
+
+        image_feature = self._encode_image_features(batch, batch_size=batch_size, device=device)
+        fused = torch.cat([text_feature, evidence_feature, image_feature], dim=-1)
+        return self.fusion(fused)
+
+
 def build_shared_encoder(encoder_type: str, hidden_dim: int, **kwargs: object) -> MV2RSharedEncoderBase:
     """Factory for shared encoder construction.
 
@@ -416,6 +604,9 @@ def build_shared_encoder(encoder_type: str, hidden_dim: int, **kwargs: object) -
 
     if encoder_type == "multimodal_light":
         return MultimodalLightSharedEncoder(hidden_dim=hidden_dim, **kwargs)
+
+    if encoder_type == "multimodal_image_features":
+        return MultimodalImageFeaturesSharedEncoder(hidden_dim=hidden_dim, **kwargs)
 
     raise ValueError(f"Unsupported encoder_type: {encoder_type}")
 

@@ -34,12 +34,20 @@ class MinimalMV2RModel(nn.Module):
         encoder_kwargs: Optional[Dict[str, object]] = None,
     ) -> None:
         super().__init__()
-        multimodal_encoder_types = {"multimodal_ready_text", "multimodal_light"}
-        selected_encoder_kwargs = encoder_kwargs if encoder_type in multimodal_encoder_types else {}
+        multimodal_encoder_types = {"multimodal_ready_text", "multimodal_light", "multimodal_image_features"}
+        selected_encoder_kwargs = dict(encoder_kwargs or {}) if encoder_type in multimodal_encoder_types else {}
+        if encoder_type in {"multimodal_ready_text", "multimodal_light"}:
+            selected_encoder_kwargs.pop("image_feature_path", None)
+            selected_encoder_kwargs.pop("image_feature_key", None)
+            selected_encoder_kwargs.pop("image_feature_dim", None)
+        if encoder_type == "multimodal_image_features":
+            selected_encoder_kwargs.pop("use_conflict_type", None)
+            selected_encoder_kwargs.pop("use_image_hint", None)
+
         self.encoder = build_shared_encoder(
             encoder_type=encoder_type,
             hidden_dim=hidden_dim,
-            **(selected_encoder_kwargs or {}),
+            **selected_encoder_kwargs,
         )
         self.view_head = MV2RViewHead(hidden_dim=hidden_dim)
         self.aggregator_mode = aggregator_mode
@@ -234,6 +242,9 @@ def run_sanity_check(args: argparse.Namespace) -> None:
             "use_evidence_text": not args.disable_evidence_text,
             "use_conflict_type": args.enable_conflict_type and not args.disable_conflict_type,
             "use_image_hint": not args.disable_image_hint,
+            "image_feature_path": args.image_feature_path,
+            "image_feature_key": args.image_feature_key,
+            "image_feature_dim": args.image_feature_dim,
         },
     ).to(device)
 
@@ -288,7 +299,7 @@ def parse_args() -> argparse.Namespace:
         "--encoder-type",
         type=str,
         default="simple_text",
-        choices=["simple_text", "multimodal_ready_text", "multimodal_light"],
+        choices=["simple_text", "multimodal_ready_text", "multimodal_light", "multimodal_image_features"],
         help="Shared encoder type",
     )
     parser.add_argument(
@@ -332,6 +343,25 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         help="Disable image-path presence hint in multimodal_ready_text encoder",
     )
+    parser.add_argument(
+        "--image-feature-path",
+        type=str,
+        default=None,
+        help="Optional JSON file with pre-extracted image features keyed by sample id or image path",
+    )
+    parser.add_argument(
+        "--image-feature-key",
+        type=str,
+        default="auto",
+        choices=["auto", "sample_id", "image_path"],
+        help="Key strategy used to fetch image features for multimodal_image_features encoder",
+    )
+    parser.add_argument(
+        "--image-feature-dim",
+        type=int,
+        default=None,
+        help="Optional override for expected image feature dimension",
+    )
     return parser.parse_args()
 
 
@@ -366,6 +396,9 @@ def main() -> None:
             "use_evidence_text": not args.disable_evidence_text,
             "use_conflict_type": args.enable_conflict_type and not args.disable_conflict_type,
             "use_image_hint": not args.disable_image_hint,
+            "image_feature_path": args.image_feature_path,
+            "image_feature_key": args.image_feature_key,
+            "image_feature_dim": args.image_feature_dim,
         },
     ).to(device)
     optimizer = torch.optim.Adam(model.parameters(), lr=args.learning_rate)
