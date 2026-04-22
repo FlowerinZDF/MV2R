@@ -70,6 +70,7 @@ def parse_weibo_file(path: Path) -> Tuple[List[Tuple[str, str, List[str]]], int]
 
 def build_image_index(weibo_root: Path) -> Dict[str, str]:
     image_index: Dict[str, str] = {}
+    repo_root = Path.cwd().resolve()
 
     for subdir in ("rumor_images", "nonrumor_images"):
         folder = weibo_root / subdir
@@ -80,7 +81,14 @@ def build_image_index(weibo_root: Path) -> Dict[str, str]:
                 continue
             key_full = p.name.lower()
             key_stem = p.stem.lower()
-            rel = str((Path(subdir) / p.name).as_posix())
+            candidate_path = weibo_root / subdir / p.name
+            if candidate_path.is_absolute():
+                try:
+                    rel = candidate_path.resolve().relative_to(repo_root).as_posix()
+                except ValueError:
+                    rel = candidate_path.as_posix()
+            else:
+                rel = candidate_path.as_posix()
             image_index.setdefault(key_full, rel)
             image_index.setdefault(key_stem, rel)
 
