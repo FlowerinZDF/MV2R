@@ -67,3 +67,25 @@ The following are not required in the first runnable version:
 ## Experimental Note (Shortcut Risk)
 - `conflict_type` is now treated as analysis metadata rather than default model input in the prototype baseline.
 - Pilot ablations indicated `conflict_type` can act as a shortcut signal and introduce leakage-like behavior in validation.
+
+## Pilot v2 Experiment Summary
+- Current trusted baseline (default safe):
+  - `encoder_type = multimodal_ready_text`
+  - `aggregator_mode = shared_and_view_logits`
+  - `view_loss_weight = 1.0`
+  - `conflict_type` disabled by default
+- Why `conflict_type` is disabled by default:
+  - It can become a shortcut signal and inflate validation behavior without improving robust generalization.
+- Weak image-hint result:
+  - `multimodal_light` and `multimodal_image_features` (mock/weak image hints) did not outperform the trusted baseline.
+- Recommendation for future multimodal work:
+  - Prefer richer semantic image embeddings over weak mock feature vectors for next-stage multimodal experiments.
+
+## Pilot v2 Findings (Compact)
+| Configuration | Observation |
+| --- | --- |
+| `simple_text` + `shared_and_view_logits` | Useful reference point but not the trusted default after v2. |
+| `multimodal_ready_text` + `shared_and_view_logits` + `conflict_type` | Can look strong but depends on a shortcut-prone signal. |
+| `multimodal_ready_text` + `shared_and_view_logits` (default safe) | Current trusted pilot baseline. |
+| `multimodal_light` + `shared_and_view_logits` | Weak image hints did not beat trusted baseline. |
+| `multimodal_image_features` + `shared_and_view_logits` | Mock image features did not beat trusted baseline. |
