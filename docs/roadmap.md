@@ -57,6 +57,8 @@ The following are not required in the first runnable version:
 - Added larger pilot split for next stable round:
   - `data/pilot/mv2r_pilot_train_v2.json` (48)
   - `data/pilot/mv2r_pilot_val_v2.json` (12)
+- Added combined mock image-feature file for multimodal integration testing:
+  - `data/pilot/mv2r_pilot_v2_image_features.json` (train+val coverage, deterministic 16-dim vectors keyed by sample ID)
 - Current best-performing configuration:
   - improved shared encoder
   - `view_loss_weight = 1.0`
